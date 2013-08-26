@@ -26,7 +26,7 @@ TOTAL-CRATED : Total number of new POOL-ITEMs created and added to the POOL
 
 ---
 
-**new-pool** &key *name* (*pool-item-maker* #'(lambda () 'SAMPLE-ITEM)) (*pool-item-destroyer* #'(lambda (item) (setf item nil))) (*max-capacity* 4) (*min-threshold* 2)
+**new-pool** &key *name* ( *pool-item-maker* #'(lambda () 'SAMPLE-ITEM)) ( *pool-item-destroyer* #'(lambda (item) (setf item nil))) ( *max-capacity* 4 ) ( *min-threshold* 2 )
 
 Makes and returns a new POOL.
 
@@ -34,7 +34,7 @@ Makes and returns a new POOL.
 
 **grow-pool** *pool* &optional *grow-by*
 
-Creates and adds POOL-ITEMs to the *pool*. In case *grow-by* is not provided then it takes (*min-threshold* *pool*) as the value
+Creates and adds POOL-ITEMs to the *pool*. In case *grow-by* is not provided then it takes ( *min-threshold* *pool* ) as the value
 
 ---
 
