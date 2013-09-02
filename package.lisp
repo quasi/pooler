@@ -1,8 +1,8 @@
 ;;;; package.lisp
 
 (defpackage #:pooler
-  (:use #:cl #:bordeaux-threads)
-  (:export #:new-pool
+  (:use #:cl)
+  (:export #:make-pool
 	   #:grow-pool
 	   #:pool-init
 	   #:fetch-from

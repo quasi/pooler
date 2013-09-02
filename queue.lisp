@@ -43,20 +43,36 @@
 
 (defun make-queue ()
   ""
+  #+sbcl (sb-concurrency:make-queue)
   #+allegro (make-instance 'mp:queue)
-  #-allegro (make-empty-queue))
+  #-(or sbcl allegro) (make-empty-queue))
 
 (defmacro enqueue (queue what)
   ""
+  #+sbcl `(sb-concurrency:enqueue ,what ,queue)
   #+allegro `(mp:enqueue ,queue ,what)
-  #-allegro `(enqueue-at-end ,queue ,what))
+  #-(or sbcl allegro) `(enqueue-at-end ,queue ,what))
 
 (defmacro dequeue (queue)
   ""
+  #+sbcl `(sb-concurrency:dequeue ,queue)
   #+allegro `(mp:dequeue ,queue)
-  #-allegro `(remove-front ,queue))
+  #-(or sbcl allegro) `(remove-front ,queue))
 
 (defmacro queue-empty-p (queue)
   ""
+  #+sbcl `(sb-concurrency:queue-empty-p ,queue)
   #+allegro `(mp:queue-empty-p ,queue)
-  #-allegro `(empty-queue? ,queue))
+  #-(or sbcl allegro) `(empty-queue? ,queue))
+
+
+;;; Couple of Lock wrappers
+(defun make-lock ()
+  #+sbcl (sb-thread:make-mutex :name "Pool Lock")
+  #-sbcl (bordeaux-threads:make-lock "Pool Lock"))
+
+(defmacro with-lock ((lock) &body body)
+  #+sbcl `(sb-thread:with-mutex (,lock) ,@body)
+  #-sbcl `(bordeaux-threads:with-lock-held (,lock) ,@body))
+
+;;; EOF

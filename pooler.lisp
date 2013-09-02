@@ -33,109 +33,49 @@
 ;;;
 ;;;
 
-(defclass pool ()
-  ((name
-    :reader   name
-    :initform "Default Pool"
-    :initarg  :name
-    :type     simple-string
-    :documentation "Name of this pool")
-   (queue
-    :accessor queue
-    :initform (make-queue))
-   (pool-lock
-    :reader   pool-lock
-    :initform (bordeaux-threads:make-lock "Pool Lock"))
-   (pool-item-maker
-    :accessor pool-item-maker
-    :initform #'(lambda () 'SAMPLE-ITEM)
-    :initarg :pool-item-maker
-    :documentation "Method to make a new pool item")
-   (pool-item-destroyer
-    :accessor pool-item-destroyer
-    :initform #'(lambda (item) (setf item nil))
-    :initarg :pool-item-destroyer
-    :documentation "Method to sanely destroy a pool item")
-   (max-capacity
-    :reader   max-capacity
-    :initform 4
-    :initarg  :max-capacity
-    :type     fixnum
-    :documentation "Total capacity of the pool to hold pool objects")
-   (min-threshold
-    :initarg  :min-threshold
-    :accessor min-threshold
-    :initform 2
-    :type     fixnum
-    :documentation "Minimum idle items")
-   (current-size
-    :accessor current-size
-    :type     fixnum
-    :initform 0)
-   (total-uses
-    :accessor total-uses
-    :initform 0
-    :type     fixnum
-    :documentation "Total uses of the pool")
-   (total-created
-    :accessor total-created
-    :initform 0
-    :type     fixnum
-    :documentation "Total pool objects created"))
-  (:documentation "The POOL object"))
-
-(defmethod print-object ((p pool) stream)
-  (format stream "#<~S ~a Max:~d Current:~d >"
-	  (type-of p)
-	  (name p)
-	  (max-capacity p)
-	  (current-size p)))
+(defstruct (pool (:constructor make-pool (&key name capacity threshold item-maker item-destroyer)))
+  (name "Default Pool" :type simple-string :read-only t)
+  (queue (make-queue))
+  (lock (make-lock) :read-only t)
+  (item-maker #'(lambda () 'SAMPLE-ITEM) :type function :read-only t)
+  (item-destroyer #'(lambda (item) (setf item nil)) :type function :read-only t)
+  (capacity 4 :type fixnum)
+  (threshold 2 :type fixnum)
+  (current-size 0 :type fixnum)
+  (total-uses 0 :type fixnum)
+  (total-created 0 :type fixnum))
 
 
-
-(defun new-pool (&key name (pool-item-maker #'(lambda () 'SAMPLE-ITEM)) (pool-item-destroyer #'(lambda (item) (setf item nil))) (max-capacity 4) (min-threshold 2))
-  (make-instance 'pool
-		 :name name
-		 :pool-item-maker pool-item-maker
-		 :pool-item-destroyer pool-item-destroyer
-		 :max-capacity max-capacity
-		 :min-threshold min-threshold))
-
-
-;;; the pool-item-maker should return a vaild pool item or NIL
-(defgeneric new-pool-item (pool))
-
-(defmethod new-pool-item ((pool pool))
+(defun new-pool-item (pool)
   (handler-case (funcall (pool-item-maker pool))
-    (error () (error 'pool-item-creation-error :pool-name (name pool)))))
+    (error () (error 'pool-item-creation-error :pool-name (pool-name pool)))))
 
-(defgeneric destroy-pool-item (pool pool-item))
 
-(defmethod destroy-pool-item ((pool pool) pool-item)
+
+(defun destroy-pool-item (pool pool-item)
   (ignore-errors (funcall (pool-item-destroyer pool) pool-item)))
 
 
 (defun grow-pool (pool &optional grow-by)
-  (let ((grow-by (or grow-by (min-threshold pool))))
+  (let ((grow-by (or grow-by (pool-threshold pool))))
     (loop for x from 1 to grow-by
-       do (bordeaux-threads:with-lock-held ((pool-lock pool))
-	    (when (< (current-size pool) (max-capacity pool))
+       do (with-lock ((pool-lock pool))
+	    (when (< (pool-current-size pool) (pool-capacity pool))
 	      (let ((pool-item (new-pool-item pool)))
 		(when pool-item
-		  (enqueue (queue pool) pool-item)
-		  (incf (total-created pool))
-		  (incf (current-size pool)))))))))
+		  (enqueue (pool-queue pool) pool-item)
+		  (incf (pool-total-created pool))
+		  (incf (pool-current-size pool)))))))))
 
 
-(defgeneric fetch-from (pool))
 
-(defmethod fetch-from ((pool pool))
+(defun fetch-from (pool)
   "Fetches a pool item from pool."
-  (bordeaux-threads:with-lock-held ((pool-lock pool))
-    (when (not (queue-empty-p (queue pool)))
-      (decf (current-size pool))
-      (incf (total-uses pool))
-      (dequeue (queue pool)))))
+  (with-lock ((pool-lock pool))
+    (when (not (queue-empty-p (pool-queue pool)))
+      (decf (pool-current-size pool))
+      (incf (pool-total-uses pool))
+      (dequeue (pool-queue pool)))))
 
 
 (defun fetch-from+ (pool &key (tries 3))
@@ -147,30 +87,29 @@
 	      (return item)))))
 
 
-(defgeneric return-to (pool pool-item))
 
-(defmethod return-to ((pool pool) pool-item)
+(defun return-to (pool pool-item)
   "Returns a pool object to the pool"
-  (bordeaux-threads:with-lock-held ((pool-lock pool))
-    (if (< (current-size pool) (max-capacity pool))
+  (with-lock ((pool-lock pool))
+    (if (< (pool-current-size pool) (pool-capacity pool))
 	(progn
-	  (enqueue (queue pool) pool-item)
-	  (incf (current-size pool)))
+	  (enqueue (pool-queue pool) pool-item)
+	  (incf (pool-current-size pool)))
 	(destroy-pool-item pool pool-item))))
 
 
 (defun pool-init (pool)
-  "Cleans up the pool & reinits it with POOL-SIZE number of POOL-ITEM"
+  "Cleans up the pool & reinits it with MIN-THRESHOLD number of POOL-ITEM"
   (loop for item = (handler-case (fetch-from pool) (pool-error () nil))
      while item
-     do (bordeaux-threads:with-lock-held ((pool-lock pool))
+     do (with-lock ((pool-lock pool))
 	  (destroy-pool-item pool item)
-	  (decf (current-size pool))))
-  (bordeaux-threads:with-lock-held ((pool-lock pool))
-    (setf (queue pool) (make-queue)
-	  (current-size pool) 0
-	  (total-uses pool) 0
-	  (total-created pool) 0))
+	  (decf (pool-current-size pool))))
+  (with-lock ((pool-lock pool))
+    (setf (pool-queue pool) (make-queue)
+	  (pool-current-size pool) 0
+	  (pool-total-uses pool) 0
+	  (pool-total-created pool) 0))
   (grow-pool pool))
 
 
@@ -182,7 +121,6 @@
 	    ,@body)
       (when ,pool-item
 	(return-to ,pool ,pool-item)))))
-
 
 
 ;;; EOF
