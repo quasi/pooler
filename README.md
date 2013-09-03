@@ -72,12 +72,8 @@ Examples
 
 	POOLER> (defvar *x* nil)
 	*X*
-	POOLER> (setf *x* (new-pool :name "Test Pool"))
+	POOLER> (setf *x* (make-pool :name "Test Pool"))
 	#<POOL Test Pool Max:4 Current:0 >
-	POOLER> (pool-init *x*)
-	NIL
-	POOLER> *x*
-	#<POOL Test Pool Max:4 Current:2 >
 	POOLER> (fetch-from+ *x*)
 	SAMPLE-ITEM
 	POOLER> *x*

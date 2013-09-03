@@ -67,11 +67,11 @@
 
 
 ;;; Couple of Lock wrappers
-(defun make-lock ()
+(defun make-pool-lock ()
   #+sbcl (sb-thread:make-mutex :name "Pool Lock")
   #-sbcl (bordeaux-threads:make-lock "Pool Lock"))
 
-(defmacro with-lock ((lock) &body body)
+(defmacro with-pool-lock ((lock) &body body)
   #+sbcl `(sb-thread:with-mutex (,lock) ,@body)
   #-sbcl `(bordeaux-threads:with-lock-held (,lock) ,@body))
 

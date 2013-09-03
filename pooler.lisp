@@ -36,7 +36,7 @@
 (defstruct (pool (:constructor make-pool (&key name capacity threshold item-maker item-destroyer)))
   (name "Default Pool" :type simple-string :read-only t)
   (queue (make-queue))
-  (lock (make-lock) :read-only t)
+  (lock (make-pool-lock) :read-only t)
   (item-maker #'(lambda () 'SAMPLE-ITEM) :type function :read-only t)
   (item-destroyer #'(lambda (item) (setf item nil)) :type function :read-only t)
   (capacity 4 :type fixnum)
@@ -46,20 +46,24 @@
   (total-created 0 :type fixnum))
 
 
+
+;;; API
+
 (defun new-pool-item (pool)
+  "Creates a new POOL-ITEM using the item-maker funciton stored in the pool"
   (handler-case (funcall (pool-item-maker pool))
     (error () (error 'pool-item-creation-error :pool-name (pool-name pool)))))
 
 
-
 (defun destroy-pool-item (pool pool-item)
+  "Destroys the POOL-ITEM using the item-destroyer funciton stored in the pool"
   (ignore-errors (funcall (pool-item-destroyer pool) pool-item)))
 
 
 (defun grow-pool (pool &optional grow-by)
   (let ((grow-by (or grow-by (pool-threshold pool))))
     (loop for x from 1 to grow-by
-       do (with-lock ((pool-lock pool))
+       do (with-pool-lock ((pool-lock pool))
 	    (when (< (pool-current-size pool) (pool-capacity pool))
 	      (let ((pool-item (new-pool-item pool)))
 		(when pool-item
@@ -71,7 +75,7 @@
 
 (defun fetch-from (pool)
   "Fetches a pool item from pool."
-  (with-lock ((pool-lock pool))
+  (with-pool-lock ((pool-lock pool))
     (when (not (queue-empty-p (pool-queue pool)))
       (decf (pool-current-size pool))
       (incf (pool-total-uses pool))
@@ -90,7 +94,7 @@
 
 (defun return-to (pool pool-item)
   "Returns a pool object to the pool"
-  (with-lock ((pool-lock pool))
+  (with-pool-lock ((pool-lock pool))
     (if (< (pool-current-size pool) (pool-capacity pool))
 	(progn
 	  (enqueue (pool-queue pool) pool-item)
@@ -102,10 +106,10 @@
   "Cleans up the pool & reinits it with MIN-THRESHOLD number of POOL-ITEM"
   (loop for item = (handler-case (fetch-from pool) (pool-error () nil))
      while item
-     do (with-lock ((pool-lock pool))
+     do (with-pool-lock ((pool-lock pool))
 	  (destroy-pool-item pool item)
 	  (decf (pool-current-size pool))))
-  (with-lock ((pool-lock pool))
+  (with-pool-lock ((pool-lock pool))
     (setf (pool-queue pool) (make-queue)
 	  (pool-current-size pool) 0
 	  (pool-total-uses pool) 0
