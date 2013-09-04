@@ -7,6 +7,6 @@
   :license "MIT"
   :depends-on (#-sbcl :bordeaux-threads #+sbcl :sb-concurrency)
   :components ((:file "package")
-	       (:file "queue")
+	       (:file "utils")
                (:file "pooler")))
 
