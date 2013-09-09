@@ -12,9 +12,9 @@
     :initarg :message
     :accessor message
     :initform nil)
-   (pool-name
-    :initarg :pool-name
-    :accessor pool-name
+   (name
+    :initarg :name
+    :accessor name
     :initform nil))
   (:documentation "Superclass for all errors related to Pooler."))
 
@@ -25,7 +25,7 @@
   "Signals an error of type POOL-ERROR with the provided information"
   (error 'pool-error
 	 :message message
-	 :pool-name pool-name))
+	 :name pool-name))
 
 ;;;
 ;;;
