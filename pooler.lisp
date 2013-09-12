@@ -27,10 +27,14 @@
 	 :message message
 	 :name pool-name))
 
+
 ;;;
+;;; The 'POOL' Structure
 ;;;
-;;; Pool
-;;;
+;;; capacity - max number of pool-items a pool can have. This affects the concurrency.
+;;; threshold - number of idle connections which a pool should maintain
+;;; timeout - number of seconds of no use of pool before it is re-inited
+;;; last-acccess - last access timestamp
 ;;;
 
 (defstruct (pool (:constructor make-pool (&key name capacity threshold item-maker item-destroyer)))
@@ -39,11 +43,14 @@
   (lock (make-pool-lock) :read-only t)
   (item-maker #'(lambda () 'SAMPLE-ITEM) :type function :read-only t)
   (item-destroyer #'(lambda (item) (setf item nil)) :type function :read-only t)
-  (capacity 4 :type fixnum)
+  (capacity 40 :type fixnum)
   (threshold 2 :type fixnum)
+  (timeout 300 :type fixnum)
+  (last-access 0 :type fixnum)
   (current-size 0 :type fixnum)
   (total-uses 0 :type fixnum)
-  (total-created 0 :type fixnum))
+  (total-created 0 :type fixnum)
+  (total-pool-inits 0 :type fixnum))
 
 
 
@@ -69,26 +76,33 @@
 		(when pool-item
 		  (enqueue (pool-queue pool) pool-item)
 		  (incf (pool-total-created pool))
-		  (incf (pool-current-size pool)))))))))
+		  (incf (pool-current-size pool))
+		  (setf (pool-last-access pool) (get-universal-time)))))))))
 
 
 
-(defun fetch-from (pool)
+(defun fetch-from-aux (pool)
   "Fetches a pool item from pool."
   (with-pool-lock ((pool-lock pool))
-    (when (not (queue-empty-p (pool-queue pool)))
-      (decf (pool-current-size pool))
-      (incf (pool-total-uses pool))
-      (dequeue (pool-queue pool)))))
+    (cond ((queue-empty-p (pool-queue pool)) nil)
+	  ((> (get-universal-time) (+ (pool-last-access pool) (pool-timeout pool))) :old)
+	  (t
+	   (decf (pool-current-size pool))
+	   (incf (pool-total-uses pool))
+	   (setf (pool-last-access pool) (get-universal-time))
+	   (dequeue (pool-queue pool))))))
 
 
-(defun fetch-from+ (pool &key (tries 3))
+(defun fetch-from (pool &key (tries 2))
   "Tries a couple of times to fetch from pool. Grows the pool."
   (loop for x from 1 to tries
-     do (let ((item (fetch-from pool)))
-	  (if (not item)
-	      (grow-pool pool)
-	      (return item)))))
+     do (let ((item (fetch-from-aux pool)))
+	  (cond ((null item)
+		 (grow-pool pool))
+		((eq item :old)
+		 (pool-init pool))
+		(t
+		 (return item))))))
 
 
 
@@ -98,14 +112,15 @@
     (if (< (pool-current-size pool) (pool-capacity pool))
 	(progn
 	  (enqueue (pool-queue pool) pool-item)
+	  (setf (pool-last-access pool) (get-universal-time))
 	  (incf (pool-current-size pool)))
-	(destroy-pool-item pool pool-item))))
+	(destroy-pool-item pool pool-item)))) ; we dont want to update last access here
 
 
 (defun pool-init (pool)
   "Cleans up the pool & reinits it with MIN-THRESHOLD number of POOL-ITEM"
-  (loop for item = (handler-case (fetch-from pool) (pool-error () nil))
-     while item
+  (loop for item = (handler-case (fetch-from-aux pool) (pool-error () nil))
+     while (and item (not (eq item :old)))
      do (with-pool-lock ((pool-lock pool))
 	  (destroy-pool-item pool item)
 	  (decf (pool-current-size pool))))
@@ -113,7 +128,9 @@
     (setf (pool-queue pool) (make-queue)
 	  (pool-current-size pool) 0
 	  (pool-total-uses pool) 0
-	  (pool-total-created pool) 0))
+	  (pool-total-created pool) 0)
+    (incf (pool-total-pool-inits pool))
+    (warn "~a POOL-INIT no.~a" (pool-name pool) (pool-total-pool-inits pool)))
   (grow-pool pool))
 
 

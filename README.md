@@ -12,16 +12,19 @@ API
 
 *Structure* **POOL**
 ```
-NAME : Is a text string identifying the POOL
-QUEUE : A queue to store the POOL-ITEMs
-POOL-LOCK : A lock we hold when we want to update the POOL
-ITEM-MAKER : A function which returns a POOL-ITEM.
-ITEM-DESTROYER : A function which sanely destroys a POOL-ITEM
-CAPACITY : The max number of POOL-ITEMs to store in the POOL
-THRESHOLD : The min number of POOL-ITEMs we should ideally keep in the POOL.
-CURRENT-SIZE : The current number of POOL-ITEMs in the POOL
-TOTAL-USES : Total number of times the POOL-ITEMs have been taken out of the POOL
-TOTAL-CREATED : Total number of new POOL-ITEMs created and added to the POOL
+NAME             : Is a text string identifying the POOL
+QUEUE            : A queue to store the POOL-ITEMs
+POOL-LOCK        : A lock we hold when we want to update the POOL
+ITEM-MAKER       : A function which returns a POOL-ITEM.
+ITEM-DESTROYER   : A function which sanely destroys a POOL-ITEM
+CAPACITY         : The max number of POOL-ITEMs to store in the POOL
+THRESHOLD        : The min number of POOL-ITEMs we should ideally keep in the POOL.
+TIMEOUT          : The number of seconds of idleness after which the POOL will be re-init.
+LAST-ACCESS      : The last access time for the POOL.
+CURRENT-SIZE     : The current number of POOL-ITEMs in the POOL
+TOTAL-USES       : Total number of times the POOL-ITEMs have been taken out of the POOL
+TOTAL-CREATED    : Total number of new POOL-ITEMs created and added to the POOL
+TOTAL-POOL-INITS : How many times the POOL was 'INIT'.
 ```
 
 ---
@@ -38,15 +41,15 @@ Creates and adds POOL-ITEMs to the *pool*. In case *grow-by* is not provided the
 
 ---
 
-**fetch-from** *pool*
+**fetch-from-aux** *pool*
 
-Fetches a POOL-ITEM from the POOL.
+Fetches a POOL-ITEM from the POOL. Tell us if the pool has become old.
 
 ---
 
-**fetch-from+** *pool* &key (*tries 3*)
+**fetch-from** *pool* &key (*tries 3*)
 
-Is a wrapper around *fetch-from* and will try *tries* number of times to fetch POOL-ITEM from POOL. In case POOL-ITEM is not returned then it grows the POOL and tries again.
+Is a wrapper around *fetch-from-aux* and will try *tries* number of times to fetch POOL-ITEM from POOL. In case POOL-ITEM is not returned then it grows the POOL and tries again.
 
 ---
 

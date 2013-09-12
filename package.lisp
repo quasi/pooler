@@ -6,7 +6,6 @@
 	   #:grow-pool
 	   #:pool-init
 	   #:fetch-from
-	   #:fetch-from+
 	   #:return-to
 	   #:with-pool))
 
