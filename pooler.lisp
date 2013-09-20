@@ -138,7 +138,7 @@
   `(let (,pool-item)
      (unwind-protect
 	  (progn
-	    (setf ,pool-item (fetch-from+ ,pool))
+	    (setf ,pool-item (fetch-from ,pool))
 	    ,@body)
       (when ,pool-item
 	(return-to ,pool ,pool-item)))))
