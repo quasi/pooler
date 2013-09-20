@@ -91,6 +91,34 @@ Examples
 	#<POOL Test Pool Max:4 Current:2 >
 
 
+        CL-USER> (pooler:make-pool :item-maker #'(lambda () (clsql:connect '("127.0.0.1" "quasidb" "quasi" "*****") :database-type :mysql :if-exists :new))
+                                   :item-destroyer #'(lambda (item) (clsql:disconnect :database item)))
+        #S(POOLER::POOL
+        :NAME "Default Pool"
+        :QUEUE #S(SB-CONCURRENCY:QUEUE
+        :HEAD (SB-CONCURRENCY::.DUMMY.)
+        :TAIL (SB-CONCURRENCY::.DUMMY.)
+        :NAME NIL)
+        :LOCK #<SB-THREAD:MUTEX "Pool Lock" (free)>
+        :ITEM-MAKER #<FUNCTION (LAMBDA #) {1005C9BFAB}>
+        :ITEM-DESTROYER #<FUNCTION (LAMBDA #) {1005CCAAAB}>
+        :CAPACITY 40
+        :THRESHOLD 2
+        :TIMEOUT 300
+        :LAST-ACCESS 0
+        :CURRENT-SIZE 0
+        :TOTAL-USES 0
+        :TOTAL-CREATED 0
+        :TOTAL-POOL-INITS 0)
+        CL-USER> (defvar *mysql-pool* *)
+        CL-USER> (pooler:fetch-from *mysql-pool*)
+        #<CLSQL-MYSQL:MYSQL-DATABASE 127.0.0.1/quasidb/quasi OPEN {1007571373}>
+        CL-USER> (pooler:return-to *mysql-pool* *)
+        2
+        CL-USER> (pooler:with-pool (db *mysql-pool*) (clsql:query "show tables;" :database db))
+        (("LOGIN_DATA"))
+        ("Tables_in_quasidb")
+
 
 Author
 ------
