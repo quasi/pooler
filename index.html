@@ -1,0 +1,159 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Pooler by quasi</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Pooler</h1>
+        <p>A Fast, Thread-Safe Pooling Library for Common Lisp.</p>
+
+        <p class="view"><a href="https://github.com/quasi/pooler">View the Project on GitHub <small>quasi/pooler</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/quasi/pooler/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/quasi/pooler/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/quasi/pooler">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a name="pooler" class="anchor" href="#pooler"><span class="octicon octicon-link"></span></a>Pooler</h1>
+
+<p>A Trivial, Fast, Thread-Safe Pooling Library for Common Lisp.</p>
+
+<p>We need pools for items which have heavy cost of creation and which we can reuse.
+A typical use case is connection pools.</p>
+
+<p>Pool item creation (as required) is automatic on fetch-from pool. Pool-item's are created and destroyed using user supplied funcitons. The pool has a idle timeout after which all the existing pool-item's are destroyed and new ones created (pool-init). The pool has a threshold number of items which it tries to maintain.</p>
+
+<p>Licence : MIT</p>
+
+<h2>
+<a name="api" class="anchor" href="#api"><span class="octicon octicon-link"></span></a>API</h2>
+
+<p><em>Structure</em> <strong>POOL</strong></p>
+
+<pre><code>NAME             : Is a text string identifying the POOL
+QUEUE            : A queue to store the POOL-ITEMs
+POOL-LOCK        : A lock we hold when we want to update the POOL
+ITEM-MAKER       : A function which returns a POOL-ITEM.
+ITEM-DESTROYER   : A function which sanely destroys a POOL-ITEM
+CAPACITY         : The max number of POOL-ITEMs to store in the POOL
+THRESHOLD        : The min number of POOL-ITEMs we should ideally keep in the POOL.
+TIMEOUT          : The number of seconds of idleness after which the POOL will be re-init.
+LAST-ACCESS      : The last access time for the POOL.
+CURRENT-SIZE     : The current number of POOL-ITEMs in the POOL
+TOTAL-USES       : Total number of times the POOL-ITEMs have been taken out of the POOL
+TOTAL-CREATED    : Total number of new POOL-ITEMs created and added to the POOL
+TOTAL-POOL-INITS : How many times the POOL was 'INIT'.
+</code></pre>
+
+<hr><p><strong>make-pool</strong> &amp;key <em>name</em> <em>max-capacity</em> <em>min-threshold</em> <em>pool-item-maker</em> <em>pool-item-destroyer</em></p>
+
+<p>Makes and returns a new POOL.</p>
+
+<hr><p><strong>grow-pool</strong> <em>pool</em> &amp;optional <em>grow-by</em></p>
+
+<p>Creates and adds POOL-ITEMs to the <em>pool</em>. In case <em>grow-by</em> is not provided then it takes ( <em>threshold</em> <em>pool</em> ) as the value</p>
+
+<hr><p><strong>fetch-from-aux</strong> <em>pool</em></p>
+
+<p>Fetches a POOL-ITEM from the POOL. Tell us if the pool has become old.</p>
+
+<hr><p><strong>fetch-from</strong> <em>pool</em> &amp;key (<em>tries 3</em>)</p>
+
+<p>Is a wrapper around <em>fetch-from-aux</em> and will try <em>tries</em> number of times to fetch POOL-ITEM from POOL. In case POOL-ITEM is not returned then it grows the POOL and tries again.</p>
+
+<hr><p><strong>return-to</strong> <em>pool</em> <em>pool-item</em></p>
+
+<p>Returns a POOL-ITEM to the POOL. In case the pool is at CAPACITY the POOL-ITEM will be sanely destroyed using the given function</p>
+
+<hr><p><strong>pool-init</strong> <em>pool</em></p>
+
+<p>Sanely destroys all the POOL-ITEMS and then re-creates THRESHOLD number of POOL-ITEMS.</p>
+
+<hr><p><strong>with-pool</strong> <em>pool-item</em> <em>pool</em> &amp;body body</p>
+
+<p>Executes the body where <em>pool-item</em> is fetched from the <em>pool</em> and available. Sanely returns <em>pool-item</em> to the <em>pool</em> on finish of body.</p>
+
+<h2>
+<a name="examples" class="anchor" href="#examples"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<pre><code>POOLER&gt; (defvar *x* nil)
+*X*
+POOLER&gt; (setf *x* (make-pool :name "Test Pool"))
+#&lt;POOL Test Pool Max:4 Current:0 &gt;
+POOLER&gt; (fetch-from+ *x*)
+SAMPLE-ITEM
+POOLER&gt; *x*
+#&lt;POOL Test Pool Max:4 Current:1 &gt;
+POOLER&gt; (return-to *x* **)
+2
+POOLER&gt; (with-pool (pool-item *x*) (print pool-item))
+SAMPLE-ITEM
+SAMPLE-ITEM
+POOLER&gt; *x*
+#&lt;POOL Test Pool Max:4 Current:2 &gt;
+</code></pre>
+
+<p>Another</p>
+
+<pre><code>CL-USER&gt; (pooler:make-pool :item-maker #'(lambda () (clsql:connect '("127.0.0.1" "quasidb" "quasi" "*****")
+                                                                    :database-type :mysql
+                                                                    :if-exists :new))
+                           :item-destroyer #'(lambda (item) (clsql:disconnect :database item)))
+#S(POOLER::POOL
+  :NAME "Default Pool"
+  :QUEUE #S(SB-CONCURRENCY:QUEUE
+  :HEAD (SB-CONCURRENCY::.DUMMY.)
+  :TAIL (SB-CONCURRENCY::.DUMMY.)
+  :NAME NIL)
+  :LOCK #&lt;SB-THREAD:MUTEX "Pool Lock" (free)&gt;
+  :ITEM-MAKER #&lt;FUNCTION (LAMBDA #) {1005C9BFAB}&gt;
+  :ITEM-DESTROYER #&lt;FUNCTION (LAMBDA #) {1005CCAAAB}&gt;
+  :CAPACITY 40
+  :THRESHOLD 2
+  :TIMEOUT 300
+  :LAST-ACCESS 0
+  :CURRENT-SIZE 0
+  :TOTAL-USES 0
+  :TOTAL-CREATED 0
+  :TOTAL-POOL-INITS 0)
+CL-USER&gt; (defvar *mysql-pool* *)
+CL-USER&gt; (pooler:fetch-from *mysql-pool*)
+#&lt;CLSQL-MYSQL:MYSQL-DATABASE 127.0.0.1/quasidb/quasi OPEN {1007571373}&gt;
+CL-USER&gt; (pooler:return-to *mysql-pool* *)
+2
+CL-USER&gt; (pooler:with-pool (db *mysql-pool*) (clsql:query "show tables;" :database db))
+(("LOGIN_DATA"))
+("Tables_in_quasidb")
+</code></pre>
+
+<h2>
+<a name="author" class="anchor" href="#author"><span class="octicon octicon-link"></span></a>Author</h2>
+
+<p>Abhijit Rao a.k.a quasi</p>
+
+<p><a href="mailto:quasi@quasilabs.in">quasi@quasilabs.in</a></p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/quasi">quasi</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
