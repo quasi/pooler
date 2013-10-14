@@ -31,7 +31,7 @@
         <h1>
 <a name="pooler" class="anchor" href="#pooler"><span class="octicon octicon-link"></span></a>Pooler</h1>
 
-<p>A Trivial, Fast, Thread-Safe Pooling Library for Common Lisp.</p>
+<p>A Trivial, <em>Fast</em> & <em>Thread-Safe</em> Pooling Library for Common Lisp.</p>
 
 <p>We need pools for items which have heavy cost of creation and which we can reuse.
 A typical use case is connection pools.</p>
@@ -149,6 +149,7 @@ CL-USER&gt; (pooler:with-pool (db *mysql-pool*) (clsql:query "show tables;" :dat
 <p><a href="mailto:quasi@quasilabs.in">quasi@quasilabs.in</a></p>
       </section>
       <footer>
+	<p>Project by <a href="http://quasilabs.com/">quasiLabs</a></p>
         <p>This project is maintained by <a href="https://github.com/quasi">quasi</a></p>
         <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
       </footer>
