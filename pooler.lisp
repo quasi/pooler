@@ -21,6 +21,14 @@
 (define-condition pool-item-creation-error (pool-error) ())
 (define-condition pool-empty-error (pool-error) ())
 
+(define-condition pool-warning (warning)
+  ((message
+    :initarg :message
+    :accessor message
+    :initform nil))
+  (:report (lambda (condition stream)
+             (format stream "~a" (message condition)))))
+
 (defun pool-error (message &key pool-name)
   "Signals an error of type POOL-ERROR with the provided information"
   (error 'pool-error
@@ -130,7 +138,7 @@
 	  (pool-total-uses pool) 0
 	  (pool-total-created pool) 0)
     (incf (pool-total-pool-inits pool))
-    (warn "~a POOL-INIT no.~a" (pool-name pool) (pool-total-pool-inits pool)))
+    (warn 'pool-warning :message (format nil "~a POOL-INIT no.~a" (pool-name pool) (pool-total-pool-inits pool))))
   (grow-pool pool))
 
 
