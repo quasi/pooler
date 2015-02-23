@@ -45,7 +45,7 @@
 ;;; last-acccess - last access timestamp
 ;;;
 
-(defstruct (pool (:constructor make-pool (&key name capacity threshold item-maker item-destroyer)))
+(defstruct (pool (:constructor make-pool (&key name capacity threshold item-maker item-destroyer timeout)))
   (name "Default Pool" :type simple-string :read-only t)
   (queue (make-queue))
   (lock (make-pool-lock) :read-only t)
