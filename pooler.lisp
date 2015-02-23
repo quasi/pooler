@@ -54,7 +54,7 @@
   (capacity 40 :type fixnum)
   (threshold 2 :type fixnum)
   (timeout 300 :type fixnum)
-  (last-access 0 :type fixnum)
+  (last-access 0 :type integer)
   (current-size 0 :type fixnum)
   (total-uses 0 :type fixnum)
   (total-created 0 :type fixnum)
