@@ -89,11 +89,14 @@
 
 
 
-(defun fetch-from-aux (pool)
+(defun fetch-from-aux (pool &optional old)
   "Fetches a pool item from pool."
   (with-pool-lock ((pool-lock pool))
     (cond ((queue-empty-p (pool-queue pool)) nil)
-	  ((> (get-universal-time) (+ (pool-last-access pool) (pool-timeout pool))) :old)
+	  ((and (not old)
+                (> (get-universal-time)
+                   (+ (pool-last-access pool) (pool-timeout pool))))
+           :old)
 	  (t
 	   (decf (pool-current-size pool))
 	   (incf (pool-total-uses pool))
@@ -127,8 +130,8 @@
 
 (defun pool-init (pool)
   "Cleans up the pool & reinits it with MIN-THRESHOLD number of POOL-ITEM"
-  (loop for item = (handler-case (fetch-from-aux pool) (pool-error () nil))
-     while (and item (not (eq item :old)))
+  (loop for item = (handler-case (fetch-from-aux pool t) (pool-error () nil))
+     while item
      do (with-pool-lock ((pool-lock pool))
 	  (destroy-pool-item pool item)
 	  (decf (pool-current-size pool))))
