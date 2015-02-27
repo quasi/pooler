@@ -45,7 +45,7 @@
 ;;; last-acccess - last access timestamp
 ;;;
 
-(defstruct (pool (:constructor make-pool (&key name capacity threshold item-maker item-destroyer)))
+(defstruct (pool (:constructor make-pool (&key name capacity threshold item-maker item-destroyer timeout)))
   (name "Default Pool" :type simple-string :read-only t)
   (queue (make-queue))
   (lock (make-pool-lock) :read-only t)
@@ -54,7 +54,7 @@
   (capacity 40 :type fixnum)
   (threshold 2 :type fixnum)
   (timeout 300 :type fixnum)
-  (last-access 0 :type fixnum)
+  (last-access 0 :type integer)
   (current-size 0 :type fixnum)
   (total-uses 0 :type fixnum)
   (total-created 0 :type fixnum)
@@ -89,11 +89,14 @@
 
 
 
-(defun fetch-from-aux (pool)
+(defun fetch-from-aux (pool &optional old)
   "Fetches a pool item from pool."
   (with-pool-lock ((pool-lock pool))
     (cond ((queue-empty-p (pool-queue pool)) nil)
-	  ((> (get-universal-time) (+ (pool-last-access pool) (pool-timeout pool))) :old)
+	  ((and (not old)
+                (> (get-universal-time)
+                   (+ (pool-last-access pool) (pool-timeout pool))))
+           :old)
 	  (t
 	   (decf (pool-current-size pool))
 	   (incf (pool-total-uses pool))
@@ -127,8 +130,8 @@
 
 (defun pool-init (pool)
   "Cleans up the pool & reinits it with MIN-THRESHOLD number of POOL-ITEM"
-  (loop for item = (handler-case (fetch-from-aux pool) (pool-error () nil))
-     while (and item (not (eq item :old)))
+  (loop for item = (handler-case (fetch-from-aux pool t) (pool-error () nil))
+     while item
      do (with-pool-lock ((pool-lock pool))
 	  (destroy-pool-item pool item)
 	  (decf (pool-current-size pool))))
