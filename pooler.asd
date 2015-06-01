@@ -1,8 +1,13 @@
-;;;; pooler.asd
+;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: CL-USER; Base: 10 -*-
+;;;
+;;;  Pooler: A generic thread-safe pooling library
+;;;  (c) Abhijit 'quasi' Rao
+;;;
 
 (asdf:defsystem #:pooler
+  :version "1.0.0"
   :description "Generic thread-safe pooling facility for your library."
-  :author "Abhijit Rao"
+  :author "quasi <quasi@quasilabs.in>"
   :license "MIT"
   :long-description "A Trivial, Fast & Thread-Safe Pooling Library for Common Lisp.
 
