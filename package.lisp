@@ -7,5 +7,11 @@
 	   #:pool-init
 	   #:fetch-from
 	   #:return-to
-	   #:with-pool))
+	   #:with-pool
+	   #:make-distributed-pool
+	   #:get-node-for-key
+	   #:fetch-from-distributed-pool
+	   #:return-to-distributed-pool
+	   #:add-node-to-distributed-pool
+	   #:remove-node-from-distributed-pool))
 
