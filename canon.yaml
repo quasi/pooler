@@ -1,0 +1,77 @@
+---
+canon:
+  name: pooler
+  version: 1.0.0
+  description: Thread-safe pooling library for Common Lisp
+  author: Abhijit 'quasi' Rao <quasi@quasilabs.in>
+  license: MIT
+  repository: https://github.com/quasi/pooler
+
+  created: 2026-01-20
+  last_modified: 2026-01-20
+
+  status: in_development
+  maturity: draft  # draft | review | stable
+
+  technology:
+    language: Common Lisp
+    build_system: ASDF
+    primary_implementation: SBCL
+    portable_to:
+      - Allegro CL
+      - Other Common Lisp implementations (via bordeaux-threads)
+
+purpose: |
+  Pooler provides a generic, thread-safe pooling facility for reusing expensive-to-create
+  objects in Common Lisp applications. The primary use case is connection pooling for
+  databases and network resources.
+
+  Key capabilities:
+  - Automatic pool item creation on demand
+  - Configurable capacity and threshold management
+  - Timeout-based pool re-initialization
+  - Thread-safe concurrent access
+  - Distributed pooling with consistent hashing (new in v1.0)
+  - Platform abstraction for SBCL, Allegro, and portable implementations
+
+structure:
+  core:
+    foundation:
+      - vocabulary.md      # Entity and concept definitions
+      - ontology.md        # Relationships and hierarchy
+
+    decisions:
+      # Architecture Decision Records (ADRs)
+      - 0001-pool-timeout-lazy-checking.md
+      - 0002-consistent-hashing.md
+      - 0003-api-consolidation.md
+      - 0004-node-removal-limitation.md
+
+  features:
+    - core-pooling        # Basic pool operations
+    - distributed-pooling # Distributed pool with consistent hashing
+    - platform-abstraction # SBCL/Allegro/fallback support
+    - error-handling     # Condition hierarchy
+    - thread-safety      # Concurrency primitives
+
+metadata:
+  extracted_from_codebase: true
+  initiation_date: 2026-01-20
+  initiation_confidence: 0.81
+  triangulation_version: 0.2.0
+
+  extraction_summary:
+    vocabulary_terms: 10
+    contracts: 12
+    scenarios: 28
+    properties: 23
+    design_decisions: 7
+    observations: 18
+
+notes: |
+  This Canon was initialized from an existing, mature codebase (2013-2026).
+  The basic pooling feature is stable with excellent documentation and test coverage.
+  The distributed pooling feature is recent (2025) and well-implemented but lacks
+  documentation and comprehensive tests.
+
+  See .canon-initiation/ for detailed extraction artifacts and triangulation report.

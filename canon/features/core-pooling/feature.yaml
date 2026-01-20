@@ -1,0 +1,64 @@
+---
+feature:
+  name: core-pooling
+  version: 1.0.0
+  status: review  # Extracted from mature codebase
+  confidence: 0.99
+
+  description: |
+    Basic pooling functionality for managing reusable objects with automatic
+    lifecycle management, capacity control, and timeout-based re-initialization.
+
+  purpose: |
+    Enable efficient reuse of expensive-to-create objects (database connections,
+    file handles, etc.) by maintaining a pool of pre-created instances.
+
+  maturity: stable
+  since: 2013-09-12
+  last_modified: 2015-02-23
+
+extraction_metadata:
+  contracts_extracted: 6
+  scenarios_extracted: 24
+  properties_extracted: 17
+  test_coverage: excellent
+  documentation_quality: excellent
+
+depends_on: []
+depended_by:
+  - distributed-pooling  # Uses pool as node implementation
+
+key_concepts:
+  - Pool lifecycle management
+  - Automatic growth on demand
+  - Timeout-based re-initialization
+  - Capacity enforcement
+  - Thread-safe operations
+
+contracts:
+  - make-pool
+  - grow-pool
+  - fetch-from
+  - return-to
+  - pool-init
+  - with-pool
+
+scenarios_coverage:
+  creation: 3
+  growth: 3
+  fetch_return: 6
+  init_timeout: 4
+  macro: 4
+  integration: 2
+
+properties:
+  invariants: 5
+  business_rules: 6
+  temporal: 2
+  thread_safety: 1
+  cleanup: 1
+
+notes: |
+  This is the original pooler feature (2013), mature and well-tested.
+  Excellent documentation and test coverage.
+  High confidence for specification.

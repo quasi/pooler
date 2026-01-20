@@ -1,0 +1,69 @@
+---
+feature:
+  name: distributed-pooling
+  version: 1.0.0
+  status: draft  # Code exists but needs documentation
+  confidence: 0.62
+
+  description: |
+    Distributed pooling with consistent hashing for distributing pool items
+    across multiple independent pool instances (nodes).
+
+  purpose: |
+    Enable horizontal scaling of pooled resources by distributing load
+    across multiple backend pool instances using consistent hashing.
+
+  maturity: recent
+  since: 2025-06-09
+  last_modified: 2026-01-20
+
+extraction_metadata:
+  contracts_extracted: 6
+  scenarios_extracted: 4
+  properties_extracted: 6
+  test_coverage: minimal
+  documentation_quality: poor  # Not in README
+
+depends_on:
+  - core-pooling  # Nodes are regular pools
+
+key_concepts:
+  - Consistent hashing
+  - Virtual nodes (replicas)
+  - Dynamic node management
+  - Key-based routing
+
+contracts:
+  - make-distributed-pool
+  - fetch-from-distributed-pool
+  - return-to-distributed-pool
+  - add-node-to-distributed-pool
+  - remove-node-from-distributed-pool
+  - get-node-for-key
+
+scenarios_coverage:
+  creation: 1
+  fetch_return: 1
+  node_management: 1
+  error_handling: 1
+
+properties:
+  invariants: 3
+  business_rules: 1
+  thread_safety: 1
+
+gaps:
+  - No documentation in README
+  - Minimal test coverage
+  - No concurrent access tests
+  - Node removal orphans items (known limitation)
+
+notes: |
+  Recently added feature (AI-generated commit cead997).
+  Well-implemented with good git rationale, but lacks user-facing
+  documentation and comprehensive tests.
+
+  Priority actions:
+  1. Document API in README
+  2. Add comprehensive test suite
+  3. Document node removal limitation
