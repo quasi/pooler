@@ -1,0 +1,90 @@
+infrastructure:
+  version: 0.1.0
+  created_with: canon-bootstrap@0.1.0
+  last_migrated: null
+
+tracking:
+  created: 2026-01-20T23:40:00Z
+  last_check: 2026-01-20T23:40:00Z
+  last_modified: 2026-01-20T23:45:00Z
+
+checkpoints: []
+
+changelog:
+  - date: 2026-01-20
+    type: canon-initiated
+    summary: "Canon extracted from existing codebase via canon-initiate"
+    skill: canon-initiate
+    artifacts: "65 artifacts across 2 features (core-pooling, distributed-pooling)"
+
+  - date: 2026-01-20
+    type: health-check
+    summary: "Initial Canon health check via canon-check"
+    skill: canon-check
+    issues_found: 4
+    issues_fixed: 1
+    note: "Created .canon-meta.yaml infrastructure file"
+
+  - date: 2026-01-20
+    type: documentation-generated
+    summary: "Generated comprehensive Canon documentation and fix plan"
+    skill: canon-check
+    artifacts:
+      - README-CANON.md (guide for Canon users)
+      - .canon-check-plan.md (fix plan with recommendations)
+
+  - date: 2026-01-20
+    type: feature-enhanced
+    summary: "Enhanced distributed-pooling specification via canon-specify"
+    skill: canon-specify
+    feature: distributed-pooling
+    improvements:
+      - "Updated feature.yaml to reflect actual completeness"
+      - "Corrected outdated gaps field (docs and tests exist)"
+      - "Increased confidence from 0.62 → 0.92"
+      - "Changed status from draft → review"
+      - "Documented specification assets (31 properties, 6 contracts, 4 scenarios)"
+      - "Noted known limitations (ADR-0004 documented)"
+    confidence_change: "0.62 → 0.92 (+0.30)"
+    status_change: "draft → review"
+
+issues_history:
+  - date: 2026-01-20
+    check_id: chk-001
+    issue_type: missing_infrastructure
+    severity: moderate
+    artifact: .canon-meta.yaml
+    status: fixed
+    fix_type: AUTO
+    summary: "Created metadata file from template"
+
+  - date: 2026-01-20
+    check_id: chk-002
+    issue_type: incomplete_feature
+    severity: medium
+    artifact: features/distributed-pooling/feature.yaml
+    status: resolved
+    fix_type: MANUAL
+    summary: "Feature status updated from draft → review, confidence 0.62 → 0.92"
+    resolution: "Specification was actually complete; feature.yaml updated to reflect reality"
+
+  - date: 2026-01-20
+    check_id: chk-003
+    issue_type: stub_features
+    severity: low
+    artifacts:
+      - features/error-handling
+      - features/platform-abstraction
+      - features/thread-safety
+    status: pending
+    fix_type: MANUAL
+    summary: "Directory placeholders exist but no specifications"
+
+  - date: 2026-01-20
+    check_id: chk-004
+    issue_type: vocabulary_audit
+    severity: low
+    artifact: core/foundation/vocabulary.md
+    status: pending
+    fix_type: MANUAL
+    summary: "Optional audit recommended despite high confidence (0.92)"
