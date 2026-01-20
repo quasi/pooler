@@ -60,6 +60,181 @@
   (total-created 0 :type fixnum)
   (total-pool-inits 0 :type fixnum))
 
+(defstruct (distributed-pool (:constructor make-distributed-pool-internal))
+  (name "Default Distributed Pool" :type simple-string :read-only t)
+  (nodes nil :type list) ; List of regular pool objects
+  (hash-ring nil :type (or null list)) ; Sorted list of hash-ring-node objects
+  (replicas 10 :type fixnum) ; Number of virtual nodes per actual node
+  (lock (make-pool-lock) :read-only t))
+
+(defstruct hash-ring-node
+  (id nil)          ; Identifier of the actual node/pool
+  (hash-value 0 :type integer)) ; Hash value on the ring
+
+(defun internal-string-hash (str)
+  "Simple string hashing function. Replace with a more robust one if needed."
+  (sxhash str))
+
+(defun add-node-to-ring (dist-pool node-id)
+  "Adds a node (with its replicas) to the hash ring."
+  (let ((ring (distributed-pool-hash-ring dist-pool))
+        (replicas (distributed-pool-replicas dist-pool)))
+    (dotimes (i replicas)
+      (let* ((replica-id (format nil "~A-~A" node-id i))
+             (hash-value (internal-string-hash replica-id)))
+        (push (make-hash-ring-node :id node-id :hash-value hash-value) ring)))
+    (setf (distributed-pool-hash-ring dist-pool)
+          (sort ring #'< :key #'hash-ring-node-hash-value))
+    dist-pool))
+
+(defun remove-node-from-ring (dist-pool node-id)
+  "Removes a node (and all its replicas) from the hash ring."
+  (setf (distributed-pool-hash-ring dist-pool)
+        (delete-if #'(lambda (hr-node) (equal (hash-ring-node-id hr-node) node-id))
+                   (distributed-pool-hash-ring dist-pool)))
+  dist-pool)
+
+(defun get-node-id-for-key-from-ring (dist-pool key)
+  "Gets the ID of the node responsible for the given key from the hash ring."
+  (let* ((ring (distributed-pool-hash-ring dist-pool))
+         (key-hash (internal-string-hash key)))
+    (unless ring
+      (pool-error "Hash ring is empty." :pool-name (distributed-pool-name dist-pool)))
+    ;; Find the first node in the sorted ring whose hash is >= key-hash
+    (let ((found-node (find-if #'(lambda (hr-node) (>= (hash-ring-node-hash-value hr-node) key-hash))
+                               ring)))
+      (if found-node
+          (hash-ring-node-id found-node)
+          ;; If key-hash is greater than all node hashes, wrap around to the first node
+          (hash-ring-node-id (first ring))))))
+
+(defun make-distributed-pool (&key name (node-configs nil) (replicas 10) (item-maker nil) (item-destroyer nil) (default-capacity 40) (default-threshold 2) (default-timeout 300))
+  "Creates and returns a new DISTRIBUTED-POOL.
+NODE-CONFIGS should be a list of plists, where each plist defines a node.
+Each node config plist can have: :name, :capacity, :threshold, :timeout, :item-maker, :item-destroyer.
+If item-maker or item-destroyer are not provided in node-configs, the top-level
+item-maker and item-destroyer are used. Similarly for capacity, threshold, and timeout."
+  (let* ((dist-pool-name (or name "Default Distributed Pool"))
+         (dist-pool (make-distributed-pool-internal :name dist-pool-name :replicas replicas)))
+    (setf (distributed-pool-nodes dist-pool)
+          (loop for node-conf in node-configs
+                for i from 0
+                collect (let* ((node-name (getf node-conf :name (format nil "~A-Node-~A" dist-pool-name i)))
+                               (node-item-maker (or (getf node-conf :item-maker) item-maker))
+                               (node-item-destroyer (or (getf node-conf :item-destroyer) item-destroyer))
+                               (node-capacity (getf node-conf :capacity default-capacity))
+                               (node-threshold (getf node-conf :threshold default-threshold))
+                               (node-timeout (getf node-conf :timeout default-timeout)))
+                          (unless node-item-maker
+                            (pool-error "ITEM-MAKER must be provided either globally or for each node."
+                                        :pool-name node-name))
+                          (make-pool :name node-name
+                                     :capacity node-capacity
+                                     :threshold node-threshold
+                                     :item-maker node-item-maker
+                                     :item-destroyer node-item-destroyer
+                                     :timeout node-timeout))))
+    (dolist (node (distributed-pool-nodes dist-pool))
+      (add-node-to-ring dist-pool (pool-name node)))
+    dist-pool))
+
+(defun get-node-for-key (dist-pool key)
+  "Retrieves the actual pool object (node) for a given key from the distributed pool."
+  (with-pool-lock ((distributed-pool-lock dist-pool)) ; Ensure thread-safe access to the ring/nodes
+    (let ((node-id (get-node-id-for-key-from-ring dist-pool key)))
+      (unless node-id
+        (pool-error "Could not find a node ID for the key in the hash ring."
+                    :pool-name (distributed-pool-name dist-pool)))
+      (let ((found-node (find node-id (distributed-pool-nodes dist-pool)
+                              :key #'pool-name
+                              :test #'equal)))
+        (unless found-node
+          (pool-error (format nil "Node with ID '~A' found in ring but not in node list." node-id)
+                      :pool-name (distributed-pool-name dist-pool)))
+        found-node))))
+
+(defun fetch-from-distributed-pool (dist-pool key &key (tries 2))
+  "Fetches an item from the distributed pool based on the key.
+The key determines which underlying node (pool) is used.
+TRIES is passed to the underlying node's FETCH-FROM."
+  (let ((node (get-node-for-key dist-pool key)))
+    (unless node
+      ;; This case should ideally be caught by get-node-for-key,
+      ;; but as a safeguard:
+      (pool-error (format nil "No node found for key '~A' in ~A."
+                          key (distributed-pool-name dist-pool))
+                  :pool-name (distributed-pool-name dist-pool)))
+    (fetch-from node :tries tries)))
+
+(defun return-to-distributed-pool (dist-pool key item)
+  "Returns an item to the distributed pool based on the key.
+The key determines which underlying node (pool) the item is returned to."
+  (let ((node (get-node-for-key dist-pool key)))
+    (unless node
+      ;; This case should ideally be caught by get-node-for-key,
+      ;; but as a safeguard:
+      (pool-error (format nil "No node found for key '~A' in ~A when returning item."
+                          key (distributed-pool-name dist-pool))
+                  :pool-name (distributed-pool-name dist-pool)))
+    (return-to node item)))
+
+(defun add-node-to-distributed-pool (dist-pool node-config)
+  "Adds a new node to the distributed pool.
+NODE-CONFIG is a plist similar to those in `make-distributed-pool`'s :node-configs.
+It must contain at least :name and :item-maker (or rely on a global default if that was a design choice, though explicit is better here).
+Returns the modified distributed-pool."
+  (with-pool-lock ((distributed-pool-lock dist-pool))
+    (let* ((node-name (getf node-config :name))
+           (item-maker (getf node-config :item-maker))
+           ;; TODO: Consider if we need to access global defaults like in make-distributed-pool
+           ;; For now, assume item-maker and item-destroyer are provided or error
+           (item-destroyer (getf node-config :item-destroyer))
+           (capacity (getf node-config :capacity 40)) ; Default values
+           (threshold (getf node-config :threshold 2))
+           (timeout (getf node-config :timeout 300)))
+
+      (unless (and node-name item-maker)
+        (pool-error "Node config must include :name and :item-maker."
+                    :pool-name (distributed-pool-name dist-pool)))
+
+      (when (find node-name (distributed-pool-nodes dist-pool) :key #'pool-name :test #'equal)
+        (pool-error (format nil "Node with name '~A' already exists in ~A."
+                            node-name (distributed-pool-name dist-pool))
+                    :pool-name (distributed-pool-name dist-pool)))
+
+      (let ((new-pool (make-pool :name node-name
+                                 :capacity capacity
+                                 :threshold threshold
+                                 :item-maker item-maker
+                                 :item-destroyer item-destroyer
+                                 :timeout timeout)))
+        (push new-pool (distributed-pool-nodes dist-pool))
+        (add-node-to-ring dist-pool node-name)
+        dist-pool))))
+
+(defun remove-node-from-distributed-pool (dist-pool node-name-to-remove)
+  "Removes a node from the distributed pool by its name.
+NOTE: This version does not handle draining items from the pool being removed.
+Items in the removed pool will be orphaned until its `pool-init` or manual cleanup.
+A more robust implementation might involve item migration or graceful shutdown.
+Returns the modified distributed-pool."
+  (with-pool-lock ((distributed-pool-lock dist-pool))
+    (let ((node-to-remove (find node-name-to-remove (distributed-pool-nodes dist-pool)
+                                :key #'pool-name :test #'equal)))
+      (unless node-to-remove
+        (pool-error (format nil "Node with name '~A' not found in ~A."
+                            node-name-to-remove (distributed-pool-name dist-pool))
+                    :pool-name (distributed-pool-name dist-pool)))
+
+      ;; Potentially call (pool-init node-to-remove) to destroy its items
+      ;; For now, we just remove it from the list and the ring.
+      ;; (pool-init node-to-remove) ;; Uncomment if items should be destroyed
+
+      (setf (distributed-pool-nodes dist-pool)
+            (delete node-to-remove (distributed-pool-nodes dist-pool)))
+      (remove-node-from-ring dist-pool node-name-to-remove)
+      dist-pool)))
+
 
 
 ;;; API

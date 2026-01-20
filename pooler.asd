@@ -24,3 +24,12 @@ after which all the existing pool-item's are destroyed and new ones created
 	       (:file "utils")
                (:file "pooler")))
 
+(asdf:defsystem #:pooler/tests
+  :description "Test system for Pooler."
+  :author "Abhijit Rao"
+  :license "MIT"
+  :depends-on (#:pooler)
+  :components ((:module "tests"
+                :pathname "tests/"
+                :components
+                ((:file "test-pooler")))))
