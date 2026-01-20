@@ -95,7 +95,7 @@
 
 ## Test Files
 - **Test System:** `pooler-test.asd`
-- **Test Suite:** `test/pooler-test.lisp`
+- **Test Suite:** `tests/pooler-test.lisp`
 
 ## Running the Tests
 

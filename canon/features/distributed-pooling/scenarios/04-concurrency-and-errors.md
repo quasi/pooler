@@ -378,6 +378,6 @@ These scenarios cover:
 - Fetches can proceed concurrently on different nodes
 
 **Related**:
-- Basic pool concurrency tests (in test/pooler-test.lisp)
+- Basic pool concurrency tests (in tests/pooler-test.lisp)
 - ADR-0001: Timeout behavior
 - Contract error condition sections

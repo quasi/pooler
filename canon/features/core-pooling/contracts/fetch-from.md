@@ -88,7 +88,7 @@ for attempt in 1..tries:
   ⇒ pool-current-size = threshold (after growth)
 ```
 
-**Verification**: Test fetch-from-empty-pool (pooler-test.lisp:98-105)
+**Verification**: Test fetch-from-empty-pool (tests/pooler-test.lisp:98-105)
 
 ### Timeout Property
 
@@ -100,7 +100,7 @@ for attempt in 1..tries:
   ⇒ all old items destroyed, new items created
 ```
 
-**Verification**: Test pool-timeout-triggers-reinit (pooler-test.lisp:205-218)
+**Verification**: Test pool-timeout-triggers-reinit (tests/pooler-test.lisp:205-218)
 
 **Design Decision**: See `canon/core/decisions/0001-pool-timeout-lazy-checking.md`
 
@@ -115,7 +115,7 @@ for attempt in 1..tries:
   ⇒ pool-total-uses = old_uses + 1
 ```
 
-**Verification**: Test fetch-from-updates-stats (pooler-test.lisp:116-124)
+**Verification**: Test fetch-from-updates-stats (tests/pooler-test.lisp:116-124)
 
 ## Examples
 

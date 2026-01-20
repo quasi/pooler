@@ -83,8 +83,8 @@ The macro uses `unwind-protect` to ensure `return-to` is called even if:
 ```
 
 **Verification**:
-- Test with-pool-returns-on-error (pooler-test.lisp:235-245)
-- Test with-pool-returns-on-normal-exit (pooler-test.lisp:247-255)
+- Test with-pool-returns-on-error (tests/pooler-test.lisp:235-245)
+- Test with-pool-returns-on-normal-exit (tests/pooler-test.lisp:247-255)
 
 ### Single Fetch
 

@@ -92,7 +92,7 @@ else:
   ⇒ pool-current-size unchanged
 ```
 
-**Verification**: Test return-to-respects-capacity (pooler-test.lisp:137-153)
+**Verification**: Test return-to-respects-capacity (tests/pooler-test.lisp:137-153)
 
 ### Size Invariant
 

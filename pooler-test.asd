@@ -10,6 +10,6 @@
   :depends-on (#:pooler
                #:fiveam)
   :serial t
-  :components ((:file "test/pooler-test"))
+  :components ((:file "tests/pooler-test"))
   :perform (asdf:test-op (op c)
              (uiop:symbol-call :fiveam :run! :pooler-test)))

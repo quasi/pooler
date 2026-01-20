@@ -91,7 +91,7 @@ Pool re-initialization follows this sequence:
   ⇒ old_items not in new pool
 ```
 
-**Verification**: Test pool-init-destroys-all-items (pooler-test.lisp:167-179)
+**Verification**: Test pool-init-destroys-all-items (tests/pooler-test.lisp:167-179)
 
 ### Counter Reset
 
@@ -105,7 +105,7 @@ Pool re-initialization follows this sequence:
   ⇒ pool-total-pool-inits increased by 1
 ```
 
-**Verification**: Test pool-init-resets-counters (pooler-test.lisp:181-193)
+**Verification**: Test pool-init-resets-counters (tests/pooler-test.lisp:181-193)
 
 ### Regrowth
 
@@ -117,7 +117,7 @@ Pool re-initialization follows this sequence:
   ⇒ pool has threshold fresh items
 ```
 
-**Verification**: Test pool-init-regrows-to-threshold (pooler-test.lisp:195-201)
+**Verification**: Test pool-init-regrows-to-threshold (tests/pooler-test.lisp:195-201)
 
 ### Warning Signal
 

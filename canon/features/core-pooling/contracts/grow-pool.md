@@ -75,7 +75,7 @@ For each item to create (up to `grow-by`):
   pool-current-size ≤ pool-capacity (always)
 ```
 
-**Verification**: Test grow-pool-respects-capacity (pooler-test.lisp:87-94)
+**Verification**: Test grow-pool-respects-capacity (tests/pooler-test.lisp:87-94)
 
 ### Idempotency
 
