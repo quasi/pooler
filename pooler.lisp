@@ -115,13 +115,14 @@ Each node config plist can have: :name, :capacity, :threshold, :timeout, :item-m
 If item-maker or item-destroyer are not provided in node-configs, the top-level
 item-maker and item-destroyer are used. Similarly for capacity, threshold, and timeout."
   (let* ((dist-pool-name (or name "Default Distributed Pool"))
-         (dist-pool (make-distributed-pool-internal :name dist-pool-name :replicas replicas)))
+         (dist-pool (make-distributed-pool-internal :name dist-pool-name :replicas replicas))
+         (default-item-destroyer (or item-destroyer #'(lambda (item) (setf item nil)))))
     (setf (distributed-pool-nodes dist-pool)
           (loop for node-conf in node-configs
                 for i from 0
                 collect (let* ((node-name (getf node-conf :name (format nil "~A-Node-~A" dist-pool-name i)))
                                (node-item-maker (or (getf node-conf :item-maker) item-maker))
-                               (node-item-destroyer (or (getf node-conf :item-destroyer) item-destroyer))
+                               (node-item-destroyer (or (getf node-conf :item-destroyer) default-item-destroyer))
                                (node-capacity (getf node-conf :capacity default-capacity))
                                (node-threshold (getf node-conf :threshold default-threshold))
                                (node-timeout (getf node-conf :timeout default-timeout)))
@@ -186,9 +187,7 @@ Returns the modified distributed-pool."
   (with-pool-lock ((distributed-pool-lock dist-pool))
     (let* ((node-name (getf node-config :name))
            (item-maker (getf node-config :item-maker))
-           ;; TODO: Consider if we need to access global defaults like in make-distributed-pool
-           ;; For now, assume item-maker and item-destroyer are provided or error
-           (item-destroyer (getf node-config :item-destroyer))
+           (item-destroyer (or (getf node-config :item-destroyer) #'(lambda (item) (setf item nil))))
            (capacity (getf node-config :capacity 40)) ; Default values
            (threshold (getf node-config :threshold 2))
            (timeout (getf node-config :timeout 300)))
