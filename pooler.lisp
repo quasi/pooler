@@ -92,7 +92,7 @@
   (setf (distributed-pool-hash-ring dist-pool)
         (delete-if #'(lambda (hr-node) (equal (hash-ring-node-id hr-node) node-id))
                    (distributed-pool-hash-ring dist-pool)))
-  dist-pool))
+  dist-pool)
 
 (defun get-node-id-for-key-from-ring (dist-pool key)
   "Gets the ID of the node responsible for the given key from the hash ring."
@@ -233,7 +233,7 @@ Returns the modified distributed-pool."
       (setf (distributed-pool-nodes dist-pool)
             (delete node-to-remove (distributed-pool-nodes dist-pool)))
       (remove-node-from-ring dist-pool node-name-to-remove)
-      dist-pool))))
+      dist-pool)))
 
 
 

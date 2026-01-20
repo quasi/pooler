@@ -26,12 +26,10 @@ after which all the existing pool-item's are destroyed and new ones created
 
 (asdf:defsystem #:pooler/tests
   :description "Test system for Pooler."
-  :author "Jules AI" ; You can change this
+  :author "Abhijit Rao"
   :license "MIT"
   :depends-on (#:pooler)
   :components ((:module "tests"
                 :pathname "tests/"
                 :components
-                ((:file "test-pooler"))))
-  :perform (asdf:test-op (op c) (declare (ignore op c))
-                         (asdf:symbol-call '#:pooler-tests '#:run-all-tests)))
+                ((:file "test-pooler")))))
